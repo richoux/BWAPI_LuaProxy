@@ -1,18 +1,36 @@
-﻿Build started 11/06/2015 17:03:30.
-     1>Project "D:\StarCraft\fb\BWAPI_proxy\BWAPI_proxy.vcxproj" on node 2 (Build target(s)).
+﻿Build started 26/06/2015 17:31:15.
+     1>Project "D:\GitHub\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" on node 2 (Rebuild target(s)).
      1>ClCompile:
-         D:\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /I"D:\StarCraft\bwapi-4.1.1b/include" /Zi /nologo /W3 /WX- /MP /Od /Oy- /D NOMINMAX /D WIN32 /D _DEBUG /D _WINDOWS /D _USRDLL /D EXAMPLEAIMODULE_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source\Dll.cpp Source\BWAPI_proxy.cpp
+         D:\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /I"D:\StarCraft\BWAPI-4.1.1b/include" /I"D:\StarCraft\fb\msgpack-c-master/include" /Zi /nologo /W3 /WX- /MP /Od /Oy- /D NOMINMAX /D WIN32 /D _DEBUG /D _WINDOWS /D _USRDLL /D EXAMPLEAIMODULE_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source\Dll.cpp Source\BWAPI_proxy.cpp
          Dll.cpp
          BWAPI_proxy.cpp
-     1>Source\BWAPI_proxy.cpp(364): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+     1>Source\BWAPI_proxy.cpp(505): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>Source\BWAPI_proxy.cpp(507): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>Source\BWAPI_proxy.cpp(558): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(559): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(567): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(573): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(574): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(575): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(576): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(577): warning C4996: 'strtok': This function or variable may be unsafe. Consider using strtok_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Microsoft Visual Studio 12.0\VC\include\string.h(204) : see declaration of 'strtok'
+     1>Source\BWAPI_proxy.cpp(1071): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
                  C:\Program Files (x86)\Windows Kits\8.1\Include\um\winsock2.h(1850) : see declaration of 'inet_addr'
        Link:
-         D:\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\StarCraft\fb\BWAPI_proxy\Debug\BWAPI_proxyd.dll" /INCREMENTAL:NO /NOLOGO "D:\StarCraft\bwapi-4.1.1b/lib/BWAPId.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\StarCraft\fb\BWAPI_proxy\Debug\BWAPI_proxyd.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"Debug\BWAPI_proxyd.lib" /MACHINE:X86 /SAFESEH /DLL Debug\Dll.obj
+         D:\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\GitHub\BWAPI_LuaProxy\Debug\BWAPI_proxyd.dll" /INCREMENTAL:NO /NOLOGO "D:\StarCraft\BWAPI-4.1.1b/lib/BWAPId.lib" "D:\StarCraft\fb\msgpack-c-master/lib/Release/msgpack.lib" "D:\StarCraft\fb\msgpack-c-master/lib/Release/msgpack_import.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\GitHub\BWAPI_LuaProxy\Debug\BWAPI_proxyd.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"Debug\BWAPI_proxyd.lib" /MACHINE:X86 /SAFESEH /DLL Debug\Dll.obj
          Debug\BWAPI_proxy.obj
             Creating library Debug\BWAPI_proxyd.lib and object Debug\BWAPI_proxyd.exp
-         BWAPI_proxy.vcxproj -> D:\StarCraft\fb\BWAPI_proxy\Debug\BWAPI_proxyd.dll
-     1>Done Building Project "D:\StarCraft\fb\BWAPI_proxy\BWAPI_proxy.vcxproj" (Build target(s)).
+         BWAPI_proxy.vcxproj -> D:\GitHub\BWAPI_LuaProxy\Debug\BWAPI_proxyd.dll
+     1>Done Building Project "D:\GitHub\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" (Rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:06.09
+Time Elapsed 00:00:05.10

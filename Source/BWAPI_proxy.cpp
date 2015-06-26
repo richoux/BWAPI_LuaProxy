@@ -52,7 +52,6 @@ int digits[9];
 int proxyBotSocket = -1;
 
 /** message pack buffers */
-std:stringstream ss;
 msgpack::sbuffer sbuf;
 msgpack::packer<msgpack::sbuffer> packer(&sbuf);
 
@@ -67,6 +66,8 @@ BWAPI::UnitType getUnitType(int type);
 BWAPI::TechType getTechType(int type);
 BWAPI::UpgradeType getUpgradeType(int type);
 SOCKET initSocket();
+
+// useful for debugging purpose
 bool onStartSend = false;
 
 void BWAPI_proxy::onStart()
@@ -510,41 +511,38 @@ void BWAPI_proxy::onFrame()
   sendBuffer[index++] = '\n';
   ///send(proxyBotSocket, sendBuffer, index, 0);
 
-	//packer.pack_int(Broodwar->self()->minerals());
-	//packer.pack_int(Broodwar->self()->gas());
-	//packer.pack_int(Broodwar->self()->supplyUsed() / 2);
-	//packer.pack_int(Broodwar->self()->supplyTotal() / 2);
+	packer.pack_int(Broodwar->self()->minerals());
+	packer.pack_int(Broodwar->self()->gas());
+	packer.pack_int(Broodwar->self()->supplyUsed() / 2);
+	packer.pack_int(Broodwar->self()->supplyTotal() / 2);
 
-	//send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
-	//sbuf.clear();
+	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	sbuf.clear();
 
-	if (!onStartSend)
-	{
-		// Players data
-		Broodwar << "selfId = " + to_string(Broodwar->self()->getID()) << std::endl;
-		msgpack::pack(ss, string("selfId = " + to_string(Broodwar->self()->getID()) ) );
-		//packer.pack(string("selfId = " + to_string(Broodwar->self()->getID())));
-		//Playerset  players = Broodwar->getPlayers();
-		//for (auto &p : players)
-		//{
-		//	int id = p->getID();
-		//	string idString = to_string(id);
-		//	packer.pack(string("table.insert(players, " + idString + ")"));
-		//	packer.pack(string("playerRace[" + idString + "] = " + p->getRace().getName()));
-		//	packer.pack(string("ally[" + idString + "] = " + to_string(Broodwar->self()->isAlly(p))));
-		//}
+	//if (!onStartSend)
+	//{
+	//	// Players data
+	//	packer.pack(string("selfId = " + to_string(Broodwar->self()->getID())));
+	//	Playerset  players = Broodwar->getPlayers();
+	//	for (auto &p : players)
+	//	{
+	//		int id = p->getID();
+	//		string idString = to_string(id);
+	//		packer.pack(string("table.insert(players, " + idString + ")"));
+	//		packer.pack(string("playerRace[" + idString + "] = " + p->getRace().getName()));
+	//		packer.pack(string("ally[" + idString + "] = " + to_string(Broodwar->self()->isAlly(p))));
+	//	}
 
-		//// Map data
-		//packer.pack(string("mapName = " + Broodwar->mapName()));
-		//packer.pack(string("mapWidth = " + Broodwar->mapWidth()));
-		//packer.pack(string("mapHeight = " + Broodwar->mapHeight()));
+	//	// Map data
+	//	packer.pack(string("mapName = " + Broodwar->mapName()));
+	//	packer.pack(string("mapWidth = " + to_string(Broodwar->mapWidth())));
+	//	packer.pack(string("mapHeight = " + to_string(Broodwar->mapHeight())));
 
-		send(proxyBotSocket, ss.str().data(), ss.str().size(), 0);
-		//send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
-		//sbuf.clear();
+	//	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	//	sbuf.clear();
 
-		onStartSend = true;
-	}
+	//	onStartSend = true;
+	//}
 
   // 2. process commands
   int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
