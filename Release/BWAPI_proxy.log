@@ -1,0 +1,15 @@
+﻿Build started 26/06/2015 15:06:44.
+     1>Project "D:\StarCraft\fb\BWAPI_proxy\BWAPI_proxy.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         D:\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /I"D:\StarCraft\BWAPI-4.1.1b/include" /I"D:\StarCraft\fb\msgpack-c-master/include" /Zi /nologo /W3 /WX- /MP /O2 /Oi /Oy- /GL /D NOMINMAX /D WIN32 /D NDEBUG /D _WINDOWS /D _USRDLL /D EXAMPLEAIMODULE_EXPORTS /D _WINDLL /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source\BWAPI_proxy.cpp
+         BWAPI_proxy.cpp
+     1>Source\BWAPI_proxy.cpp(55): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>Source\BWAPI_proxy.cpp(55): error C2365: 'std' : redefinition; previous definition was 'namespace'
+     1>Source\BWAPI_proxy.cpp(55): error C2143: syntax error : missing ';' before ':'
+     1>Source\BWAPI_proxy.cpp(504): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>Source\BWAPI_proxy.cpp(506): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>Done Building Project "D:\StarCraft\fb\BWAPI_proxy\BWAPI_proxy.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:01.77
