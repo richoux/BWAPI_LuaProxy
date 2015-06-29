@@ -54,6 +54,7 @@ int proxyBotSocket = -1;
 /** message pack buffers */
 msgpack::sbuffer sbuf;
 msgpack::packer<msgpack::sbuffer> packer(&sbuf);
+msgpack::unpacker unpacker;
 
 /** functions */
 void append(FILE *log, std::string data);
@@ -628,39 +629,47 @@ void BWAPI_proxy::onFrame()
   // 2. process commands
   int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
 
-  char *message = new char[numBytes + 1];
-  message[numBytes] = 0;
-  for (int i = 0; i<numBytes; i++)
-  {
-	  message[i] = receiveBuffer[i];
-  }
+	//unpacker.reserve_buffer(numBytes);
+	//memcpy(unpacker.buffer(), receiveBuffer, numBytes);
+	//unpacker.buffer_consumed(numBytes);
 
-  // tokenize the commands
-  char* token = strtok(message, ":");
-  token = strtok(NULL, ":");			// eat the command part of the message
-  int commandCount = 0;
-  char* commands[100];
+	//msgpack::unpacked result;
+	//while (unpacker.next(&result))
+	//{
+	//	char *message = result.get().convert();
 
-  while (token != NULL)
-  {
-	  commands[commandCount] = token;
-	  commandCount++;
-	  token = strtok(NULL, ":");
-  }
+		char *message = new char[numBytes + 1];
+		message[numBytes] = 0;
+		for (int i = 0; i < numBytes; i++)
+		{
+			message[i] = receiveBuffer[i];
+		}
 
-  // tokenize the arguments
-  for (int i = 0; i<commandCount; i++)
-  {
-	  char* command = strtok(commands[i], ";");
-	  char* unitID = strtok(NULL, ";");
-	  char* arg0 = strtok(NULL, ";");
-	  char* arg1 = strtok(NULL, ";");
-	  char* arg2 = strtok(NULL, ";");
+		// tokenize the commands
+		char* token = strtok(message, ":");
+		token = strtok(NULL, ":");			// eat the command part of the message
+		int commandCount = 0;
+		char* commands[100];
 
-	  handleCommand(atoi(command), atoi(unitID), atoi(arg0), atoi(arg1), atoi(arg2));
-  }
+		while (token != NULL)
+		{
+			commands[commandCount] = token;
+			commandCount++;
+			token = strtok(NULL, ":");
+		}
 
+		// tokenize the arguments
+		for (int i = 0; i < commandCount; i++)
+		{
+			char* command = strtok(commands[i], ",");
+			char* unitID = strtok(NULL, ",");
+			char* arg0 = strtok(NULL, ",");
+			char* arg1 = strtok(NULL, ",");
+			char* arg2 = strtok(NULL, ",");
 
+			handleCommand(atoi(command), atoi(unitID), atoi(arg0), atoi(arg1), atoi(arg2));
+		}
+	//}
 }
 
 void BWAPI_proxy::onSendText(std::string text)
