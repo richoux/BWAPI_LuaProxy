@@ -1,0 +1,32 @@
+Onstart:
+Id self
+Pour tous les joueurs :
+ id
+ race
+ nom ?
+ id type (?)
+ bool allié ou pas
+nom map
+width
+height
+
+OnFrame:
+Pour chaque type de recherche (47) :
+ bool si recherche acquise
+Pour chaque type d'upgrade (63) :
+ int upgrade level
+Pour toutes les unités :
+ estampille
+ id joueur
+ id type
+ position x
+ position y
+ hp
+ init hp
+ shield
+ energie
+ id order
+ spiderminecount (+ scarab + interceptor ?)
+ velocity x
+ velocity y
+ is{all states}

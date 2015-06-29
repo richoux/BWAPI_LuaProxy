@@ -67,9 +67,6 @@ BWAPI::TechType getTechType(int type);
 BWAPI::UpgradeType getUpgradeType(int type);
 SOCKET initSocket();
 
-// useful for debugging purpose
-bool onStartSend = false;
-
 void BWAPI_proxy::onStart()
 {
   // Hello World!
@@ -143,7 +140,7 @@ void BWAPI_proxy::onStart()
 
   // Communications with the Lua module
   // 1. initiate communication with the proxy bot
-  std::string ack("onStart:");
+  //std::string ack("onStart:");
  // ack += to_string(Broodwar->self()->getID());
 
  // Playerset  players = Broodwar->getPlayers();
@@ -183,13 +180,13 @@ void BWAPI_proxy::onStart()
   //send(proxyBotSocket, slBuf, locations.size(), 0);
 
   // 4. send the map data
-  std::string mapName = Broodwar->mapName();
-  int mapWidth = Broodwar->mapWidth();
-  int mapHeight = Broodwar->mapHeight();
+  //std::string mapName = Broodwar->mapName();
+  //int mapWidth = Broodwar->mapWidth();
+  //int mapHeight = Broodwar->mapHeight();
 
-  std::string mapData = ":" + mapName;
-  mapData += "," + to_string(mapWidth)
-	  + "," + to_string(mapHeight) + "\n";
+  //std::string mapData = ":" + mapName;
+  //mapData += "," + to_string(mapWidth)
+	 // + "," + to_string(mapHeight) + "\n";
 
   //for (int y = 0; y<mapHeight; y++) {
 	 // for (int x = 0; x<mapWidth; x++) {
@@ -231,7 +228,25 @@ void BWAPI_proxy::onStart()
 	  //char *sbbuf = (char*)bases.c_str();
 	  //send(proxyBotSocket, sbbuf, bases.size(), 0);
 
+	// Players data
+	packer.pack(string("selfId = " + to_string(Broodwar->self()->getID())));
+	Playerset  players = Broodwar->getPlayers();
+	for (auto &p : players)
+	{
+		int id = p->getID();
+		string idString = to_string(id);
+		packer.pack(string("table.insert(players, " + idString + ")"));
+		packer.pack(string("playerRace[" + idString + "] = " + p->getRace().getName()));
+		packer.pack(string("ally[" + idString + "] = " + to_string(Broodwar->self()->isAlly(p))));
+	}
 
+	// Map data
+	packer.pack(string("mapName = " + Broodwar->mapName()));
+	packer.pack(string("mapWidth = " + to_string(Broodwar->mapWidth())));
+	packer.pack(string("mapHeight = " + to_string(Broodwar->mapHeight())));
+
+	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	sbuf.clear();
 
 }
 
@@ -425,21 +440,32 @@ void BWAPI_proxy::onFrame()
 
   auto tektypes = TechTypes::allTechTypes();
   for( auto &i : tektypes ) {
-	  if (Broodwar->self()->hasResearched(i)) {
-		  research[(i).getID()] = 4;
-	  }
-	  else if (Broodwar->self()->isResearching(i)) {
-		  research[(i).getID()] = 1;
-	  }
-	  else {
-		  research[(i).getID()] = 0;
-	  }
-  }
+		int id = i.getID();
+		string idString = to_string(id);
 
-  sendBuffer[index++] = ';';
-  for (int i = 0; i<47; i++) {
-	  index = append(research[i], sendBuffer, index);
-  }
+	  if (Broodwar->self()->hasResearched(i)) {
+		  //research[(i).getID()] = 4;
+			packer.pack(string("myResearch[" + idString + "] = true"));
+	  }
+	  //else if (Broodwar->self()->isResearching(i)) {
+		  //research[(i).getID()] = 1;
+	  //}
+		if (!Broodwar->self()->hasResearched(i)){
+			packer.pack(string("myResearch[" + idString + "] = false"));
+			//research[(i).getID()] = 0;
+	  }
+		if (Broodwar->enemy()->hasResearched(i)) {
+			packer.pack(string("enemyResearch[" + idString + "] = true"));
+		}
+		if (!Broodwar->enemy()->hasResearched(i)){
+			packer.pack(string("enemyResearch[" + idString + "] = false"));
+		}
+	}
+
+  //sendBuffer[index++] = ';';
+  //for (int i = 0; i<47; i++) {
+	 // index = append(research[i], sendBuffer, index);
+  //}
 
   // get the upgrade status
   int ups[63];
@@ -447,68 +473,145 @@ void BWAPI_proxy::onFrame()
 
   auto upTypes = UpgradeTypes::allUpgradeTypes();
   for( auto &i : upTypes ) {
+		int id = i.getID();
+		string idString = to_string(id);
+
 	  if (Broodwar->self()->isUpgrading(i)) {
-		  ups[(i).getID()] = 4;
+		  //ups[(i).getID()] = 4;
+			packer.pack(string("myUpgrades[" + idString + "] = true"));
 	  }
-	  else {
-		  ups[(i).getID()] = Broodwar->self()->getUpgradeLevel(i);
-	  }
+	  //else {
+		 // ups[(i).getID()] = Broodwar->self()->getUpgradeLevel(i);
+	  //}
+		if (!Broodwar->self()->isUpgrading(i)) {
+			packer.pack(string("myUpgrades[" + idString + "] = false"));
+		}
+		if (Broodwar->enemy()->isUpgrading(i)) {
+			packer.pack(string("enemyUpgrades[" + idString + "] = true"));
+		}
+		if (!Broodwar->enemy()->isUpgrading(i)) {
+			packer.pack(string("enemyUpgrades[" + idString + "] = false"));
+		}
+
   }
 
-  sendBuffer[index++] = ';';
-  for (int i = 0; i<63; i++) {
-	  index = append(ups[i], sendBuffer, index);
-  }
+  //sendBuffer[index++] = ';';
+  //for (int i = 0; i<63; i++) {
+	 // index = append(ups[i], sendBuffer, index);
+  //}
 
   for( auto &i : units )
   {
 	  int unitID = unitMap[i];
+		string idString = to_string(unitID);
 
-	  sendBuffer[index++] = ':';
-	  index = append(unitID, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getPlayer()->getID(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getType().getID(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getTilePosition().x, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getTilePosition().y, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getHitPoints() / 256, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getShields() / 256, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getEnergy() / 256, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getRemainingBuildTime(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getRemainingTrainTime(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getRemainingResearchTime(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getRemainingUpgradeTime(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getOrderTimer(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getOrder().getID(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getResources(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  Unit addon = (i)->getAddon();	// add on ID
-	  int addonID = 0;
-	  if (addon != NULL) addonID = unitMap[addon];
-	  index = append(addonID, sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getSpiderMineCount(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getVelocityX(), sendBuffer, index);
-	  sendBuffer[index++] = ';';
-	  index = append((i)->getVelocityY(), sendBuffer, index);
+		packer.pack(string("unitID[" + idString + "] = " + idString));
+		packer.pack(string("unitPlayerID[" + idString + "] = " + to_string(i->getPlayer()->getID() )));
+		packer.pack(string("unitType[" + idString + "] = " + to_string(i->getType().getID())));
+		packer.pack(string("table.insert(unitMapType[" + to_string(i->getType().getID()) + "], " + idString + ")"));
+		packer.pack(string("unitPosX[" + idString + "] = " + to_string(i->getTilePosition().x) ));
+		packer.pack(string("unitPosY[" + idString + "] = " + to_string(i->getTilePosition().y)));
+		packer.pack(string("unitHP[" + idString + "] = " + to_string(i->getHitPoints())));
+		packer.pack(string("unitInitHP[" + idString + "] = " + to_string(i->getInitialHitPoints()) ));
+		packer.pack(string("unitShield[" + idString + "] = " + to_string(i->getShields())));
+		packer.pack(string("unitEnergy[" + idString + "] = " + to_string(i->getEnergy())));
+		packer.pack(string("unitOrderID[" + idString + "] = " + to_string(i->getOrder().getID())));
+		packer.pack(string("unitSpiderMineCount[" + idString + "] = " + to_string(i->getSpiderMineCount())));
+		packer.pack(string("unitScarabCount[" + idString + "] = " + to_string(i->getScarabCount())));
+		packer.pack(string("unitInterceptorCount[" + idString + "] = " + to_string(i->getInterceptorCount())));
+		packer.pack(string("unitAcidSporeCount[" + idString + "] = " + to_string(i->getAcidSporeCount())));
+		packer.pack(string("unitVelocityX[" + idString + "] = " + to_string(i->getVelocityX())));
+		packer.pack(string("unitVelocityY[" + idString + "] = " + to_string(i->getVelocityY())));
+
+		packer.pack(string("unitIsAccelerating [" + idString + "] = " + to_string(i->isAccelerating())));
+		packer.pack(string("unitIsAttackFrame [" + idString + "] = " + to_string(i->isAttackFrame())));
+		packer.pack(string("unitIsAttacking [" + idString + "] = " + to_string(i->isAttacking())));
+		packer.pack(string("unitIsBeingHealed [" + idString + "] = " + to_string(i->isBeingHealed())));
+		packer.pack(string("unitIsBlind [" + idString + "] = " + to_string(i->isBlind())));
+		packer.pack(string("unitIsBraking [" + idString + "] = " + to_string(i->isBraking())));
+		packer.pack(string("unitIsBurrowed [" + idString + "] = " + to_string(i->isBurrowed())));
+		packer.pack(string("unitIsCloaked [" + idString + "] = " + to_string(i->isCloaked())));
+		packer.pack(string("unitIsDefenseMatrixed [" + idString + "] = " + to_string(i->isDefenseMatrixed())));
+		packer.pack(string("unitIsDetected [" + idString + "] = " + to_string(i->isDetected())));
+		packer.pack(string("unitIsEnsnared [" + idString + "] = " + to_string(i->isEnsnared())));
+		packer.pack(string("unitIsFlying [" + idString + "] = " + to_string(i->isFlying())));
+		packer.pack(string("unitIsFollowing [" + idString + "] = " + to_string(i->isFollowing())));
+		packer.pack(string("unitIsHallucination [" + idString + "] = " + to_string(i->isHallucination())));
+		packer.pack(string("unitIsHoldingPosition [" + idString + "] = " + to_string(i->isHoldingPosition())));
+		packer.pack(string("unitIsIdle [" + idString + "] = " + to_string(i->isIdle())));
+		packer.pack(string("unitIsInterruptible [" + idString + "] = " + to_string(i->isInterruptible())));
+		packer.pack(string("unitIsInvincible [" + idString + "] = " + to_string(i->isInvincible())));
+		packer.pack(string("unitIsIrradiated [" + idString + "] = " + to_string(i->isIrradiated())));
+		packer.pack(string("unitIsLoaded [" + idString + "] = " + to_string(i->isLoaded())));
+		packer.pack(string("unitIsLockedDown [" + idString + "] = " + to_string(i->isLockedDown())));
+		packer.pack(string("unitIsMaelstrommed [" + idString + "] = " + to_string(i->isMaelstrommed())));
+		packer.pack(string("unitIsMorphing [" + idString + "] = " + to_string(i->isMorphing())));
+		packer.pack(string("unitIsMoving [" + idString + "] = " + to_string(i->isMoving())));
+		packer.pack(string("unitIsParasited [" + idString + "] = " + to_string(i->isParasited())));
+		packer.pack(string("unitIsPatrolling [" + idString + "] = " + to_string(i->isPatrolling())));
+		packer.pack(string("unitIsPlagued [" + idString + "] = " + to_string(i->isPlagued())));
+		packer.pack(string("unitIsRepairing [" + idString + "] = " + to_string(i->isRepairing())));
+		packer.pack(string("unitIsSelected [" + idString + "] = " + to_string(i->isSelected())));
+		packer.pack(string("unitIsSieged [" + idString + "] = " + to_string(i->isSieged())));
+		packer.pack(string("unitIsStartingAttack [" + idString + "] = " + to_string(i->isStartingAttack())));
+		packer.pack(string("unitIsStasised [" + idString + "] = " + to_string(i->isStasised())));
+		packer.pack(string("unitIsStimmed [" + idString + "] = " + to_string(i->isStimmed())));
+		packer.pack(string("unitIsStuck [" + idString + "] = " + to_string(i->isStuck())));
+		packer.pack(string("unitIsTargetable [" + idString + "] = " + to_string(i->isTargetable())));
+		packer.pack(string("unitIsUnderAttack [" + idString + "] = " + to_string(i->isUnderAttack())));
+		packer.pack(string("unitIsUnderDarkSwarm [" + idString + "] = " + to_string(i->isUnderDarkSwarm())));
+		packer.pack(string("unitIsUnderDisruptionWeb [" + idString + "] = " + to_string(i->isUnderDisruptionWeb())));
+		packer.pack(string("unitIsUnderStorm [" + idString + "] = " + to_string(i->isUnderStorm())));
+		packer.pack(string("unitIsVisible [" + idString + "] = " + to_string(i->isVisible())));
+
+	  //sendBuffer[index++] = ':';
+	  //index = append(unitID, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getPlayer()->getID(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getType().getID(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getTilePosition().x, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getTilePosition().y, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getHitPoints() / 256, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getShields() / 256, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getEnergy() / 256, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getRemainingBuildTime(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getRemainingTrainTime(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getRemainingResearchTime(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getRemainingUpgradeTime(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getOrderTimer(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getOrder().getID(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getResources(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //Unit addon = (i)->getAddon();	// add on ID
+	  //int addonID = 0;
+	  //if (addon != NULL) addonID = unitMap[addon];
+	  //index = append(addonID, sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getSpiderMineCount(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getVelocityX(), sendBuffer, index);
+	  //sendBuffer[index++] = ';';
+	  //index = append((i)->getVelocityY(), sendBuffer, index);
 
   }
 
-  sendBuffer[index++] = '\n';
+	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	sbuf.clear();
+
+  //sendBuffer[index++] = '\n';
   ///send(proxyBotSocket, sendBuffer, index, 0);
 
 	/*packer.pack_int(Broodwar->self()->minerals());
@@ -519,30 +622,8 @@ void BWAPI_proxy::onFrame()
 	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
 	sbuf.clear();*/
 
-	if (!onStartSend)
-	{
-		// Players data
-		packer.pack(string("selfId = " + to_string(Broodwar->self()->getID())));
-		Playerset  players = Broodwar->getPlayers();
-		for (auto &p : players)
-		{
-			int id = p->getID();
-			string idString = to_string(id);
-			packer.pack(string("table.insert(players, " + idString + ")"));
-			packer.pack(string("playerRace[" + idString + "] = " + p->getRace().getName()));
-			packer.pack(string("ally[" + idString + "] = " + to_string(Broodwar->self()->isAlly(p))));
-		}
 
-		// Map data
-		packer.pack(string("mapName = " + Broodwar->mapName()));
-		packer.pack(string("mapWidth = " + to_string(Broodwar->mapWidth())));
-		packer.pack(string("mapHeight = " + to_string(Broodwar->mapHeight())));
 
-		send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
-		sbuf.clear();
-
-		onStartSend = true;
-	}
 
   // 2. process commands
   int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
