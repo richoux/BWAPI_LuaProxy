@@ -1,14 +1,27 @@
-﻿Build started 6/29/2015 8:12:02 AM.
+﻿Build started 6/30/2015 6:04:15 AM.
      1>Project "C:\Users\florianr\Research\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" on node 2 (Build target(s)).
      1>Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.dll" /INCREMENTAL:NO /NOLOGO C:\Users\florianr\Research\BWAPI/lib/BWAPI.lib "C:\Users\florianr\Research\msgpack-c-master/lib/Release/msgpack.lib" "C:\Users\florianr\Research\msgpack-c-master/lib/Release/msgpack_import.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"Release\BWAPI_proxy.lib" /MACHINE:X86 /SAFESEH /DLL Release\Dll.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.dll" /INCREMENTAL:NO /NOLOGO C:\Users\florianr\Research\BWAPI/lib/BWAPI.lib "C:\Users\florianr\Research\msgpack-c-master/lib/Release/msgpack.lib" "C:\Users\florianr\Research\msgpack-c-master/lib/Release/msgpack_import.lib" "C:\Program Files\ZeroMQ 4.0.4/lib/libzmq-v120-mt-4_0_4.lib" "C:\Program Files\ZeroMQ 4.0.4/lib/libzmq-v120-mt-gd-4_0_4.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"Release\BWAPI_proxy.lib" /MACHINE:X86 /SAFESEH /DLL Release\Dll.obj
          Release\BWAPI_proxy.obj
             Creating library Release\BWAPI_proxy.lib and object Release\BWAPI_proxy.exp
-         Generating code
-         Finished generating code
-         BWAPI_proxy.vcxproj -> C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.dll
-     1>Done Building Project "C:\Users\florianr\Research\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" (Build target(s)).
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_close
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_errno
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_size
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_ctx_new
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_data
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_strerror
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_socket
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_init_size
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_ctx_destroy
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_connect
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_close
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_send
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_ctx_set
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_recv
+     1>BWAPI_proxy.obj : error LNK2001: unresolved external symbol __imp__zmq_msg_init
+     1>C:\Users\florianr\Research\BWAPI_LuaProxy\Release\BWAPI_proxy.dll : fatal error LNK1120: 15 unresolved externals
+     1>Done Building Project "C:\Users\florianr\Research\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" (Build target(s)) -- FAILED.
 
-Build succeeded.
+Build FAILED.
 
-Time Elapsed 00:00:07.78
+Time Elapsed 00:00:00.94

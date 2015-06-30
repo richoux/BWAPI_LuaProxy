@@ -1,7 +1,13 @@
-local socket = require('socket')
-local server = assert(socket.bind('*', 13337))
-local mp = require 'MessagePack'
-local ip, port = server:getsockname()
+--local socket = require('socket')
+--local server = assert(socket.bind('*', 13337))
+require "zmq"
+--require "zhelpers"
+local context = zmq.init(1)
+local socket = context:socket(zmq.REP)
+socket:bind("tcp://*:13337")
+
+--local mp = require 'MessagePack'
+--local ip, port = server:getsockname()
 print(ip)
 print(port)
 
@@ -77,11 +83,12 @@ local unitIsUnderDisruptionWeb  = {}
 local unitIsUnderStorm  = {}
 local unitIsVisible = {}
 
-local client = server:accept()
+--local client = server:accept()
 
 while true do
 
-   local mpac = client:receive()
+   --local mpac = client:receive()
+   local mpac = socket:recv()
 
    print("Eval " .. mpac);
    loadstring(mpac)();
@@ -120,10 +127,13 @@ while true do
    -- end
    
    if status == "closed" then break end
-   client:send("0\n")
+   --client:send("0\n")
+   socket:send("0\n")
 end
 
-client:close()
+--client:close()
+socket:close()
+context:term()
 
 -- commands
 function attack(unit, x, y)

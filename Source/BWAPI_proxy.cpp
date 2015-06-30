@@ -1,6 +1,7 @@
 #include "BWAPI_proxy.h"
 #include <iostream>
-#include <winsock2.h>
+//#include <winsock2.h>
+#include <zmq.hpp>
 #include <stdio.h>
 #include <string>
 #include <fstream>
@@ -8,7 +9,7 @@
 #include <string>
 #include <msgpack.hpp>
 
-#pragma comment(lib,"ws2_32.lib") //Winsock Library
+//#pragma comment(lib,"ws2_32.lib") //Winsock Library
 
 using namespace BWAPI;
 using namespace Filter;
@@ -36,7 +37,8 @@ int unitIDCounter = 1;
 
 /** size of recv buffer for commands from the Proxy bot */
 #define recvBufferSize 4096
-char receiveBuffer[recvBufferSize];
+//char receiveBuffer[recvBufferSize];
+char* receiveBuffer = new char[recvBufferSize];
 
 /** buffer data buffer */
 #define sendBufferSize 100000
@@ -49,7 +51,7 @@ char sendBuffer[sendBufferSize];
 int digits[9];
 
 /** our socket */
-int proxyBotSocket = -1;
+//int proxyBotSocket = -1;
 
 /** message pack buffers */
 msgpack::sbuffer sbuf;
@@ -66,37 +68,43 @@ BWAPI::Unit getUnit(int unitID);
 BWAPI::UnitType getUnitType(int type);
 BWAPI::TechType getTechType(int type);
 BWAPI::UpgradeType getUpgradeType(int type);
-SOCKET initSocket();
+//SOCKET initSocket();
+
+//ZeroMQ socket
+zmq::context_t context(1);
+zmq::socket_t zeromq_socket(context, ZMQ_REQ);
 
 void BWAPI_proxy::onStart()
 {
   // Hello World!
   Broodwar->printf("BWAPI_proxy onStart()!");
 
-  if (proxyBotSocket == -1) {
-	  Broodwar->sendText("Connecting to BWAPI_proxy");
-	  proxyBotSocket = initSocket();
+  zeromq_socket.connect("tcp://localhost:13337");
 
-	  // connected failed
-	  if (proxyBotSocket == -1) {
-		  Broodwar->sendText("WSAStartup failed");
-		  return;
-	  }
-	  else if (proxyBotSocket == -2) {
-		  Broodwar->sendText("Socket creation failed");
-		  return;
-	  }
-	  else if (proxyBotSocket == -3) {
-		  Broodwar->sendText("Socket connection failed");
-		  return;
-	  }
-	  else {
-		  Broodwar->sendText("Sucessfully connected to BWAPI_proxy");
-	  }
-  }
-  else {
-	  Broodwar->sendText("Already connected to BWAPI_proxy");
-  }
+  //if (proxyBotSocket == -1) {
+	 // Broodwar->sendText("Connecting to BWAPI_proxy");
+	 // proxyBotSocket = initSocket();
+
+	 // // connected failed
+	 // if (proxyBotSocket == -1) {
+		//  Broodwar->sendText("WSAStartup failed");
+		//  return;
+	 // }
+	 // else if (proxyBotSocket == -2) {
+		//  Broodwar->sendText("Socket creation failed");
+		//  return;
+	 // }
+	 // else if (proxyBotSocket == -3) {
+		//  Broodwar->sendText("Socket connection failed");
+		//  return;
+	 // }
+	 // else {
+		//  Broodwar->sendText("Sucessfully connected to BWAPI_proxy");
+	 // }
+  //}
+  //else {
+	 // Broodwar->sendText("Already connected to BWAPI_proxy");
+  //}
 
   // Print the map name.
   // BWAPI returns std::string when retrieving a string, don't forget to add .c_str() when printing!
@@ -246,7 +254,10 @@ void BWAPI_proxy::onStart()
 	packer.pack(string("mapWidth = " + to_string(Broodwar->mapWidth())));
 	packer.pack(string("mapHeight = " + to_string(Broodwar->mapHeight())));
 
-	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+//	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	zmq::message_t request(sbuf.size()+1);
+	memcpy((void *)request.data(), sbuf.data(), sbuf.size());
+	zeromq_socket.send(request);
 	sbuf.clear();
 
 }
@@ -267,7 +278,7 @@ void BWAPI_proxy::onEnd(bool isWinner)
   ack += "\n";
   ///send(proxyBotSocket, (char*)ack.c_str(), ack.size(), 0);
 
-  closesocket(proxyBotSocket);
+  //closesocket(proxyBotSocket);
 }
 
 void BWAPI_proxy::onFrame()
@@ -275,9 +286,9 @@ void BWAPI_proxy::onFrame()
   // Called once every game frame
 
 	// check if the Proxy Bot is connected
-	if (proxyBotSocket == -1) {
-		return;
-	}
+	//if (proxyBotSocket == -1) {
+	//	return;
+	//}
 
   // Display the game frame rate as text in the upper left area of the screen
   Broodwar->drawTextScreen(200, 0,  "FPS: %d", Broodwar->getFPS() );
@@ -609,7 +620,10 @@ void BWAPI_proxy::onFrame()
 
   }
 
-	send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	//send(proxyBotSocket, sbuf.data(), sbuf.size(), 0);
+	zmq::message_t request(sbuf.size() + 1);
+	memcpy((void *)request.data(), sbuf.data(), sbuf.size());
+	zeromq_socket.send(request);
 	sbuf.clear();
 
   //sendBuffer[index++] = '\n';
@@ -627,7 +641,12 @@ void BWAPI_proxy::onFrame()
 
 
   // 2. process commands
-  int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
+	zmq::message_t reply;
+	zeromq_socket.recv(&reply);
+	int numBytes = reply.size();
+	receiveBuffer = (char*)reply.data();
+
+  //int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
 
 	//unpacker.reserve_buffer(numBytes);
 	//memcpy(unpacker.buffer(), receiveBuffer, numBytes);
@@ -1129,57 +1148,57 @@ void handleCommand(int command, int unitID, int arg0, int arg1, int arg2)
 }
 
 
-SOCKET initSocket()
-{
-	// get data from cfg
-	using namespace std;
-	ifstream filein("bwapi-data/AI/cfg.txt"); // cfg.txt should be stored in same
-	//  directory as ClientModule.dll under the starcraft parent folder. This is optional
-
-	string host_name;
-	int port;
-	if (filein.fail()) { // no config file. connect to localhost
-		host_name = "127.0.0.1";
-		port = 13337;
-	}
-	else { // config file. connect to ip/port
-		filein >> host_name;
-		filein >> port;
-		filein.close();
-	}
-
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	
-	wVersionRequested = MAKEWORD(2, 2); // MAKEWORD(1, 1);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0)
-	{
-		printf("Failed. Error Code : %d", WSAGetLastError());
-		return -1;
-	}
-
-	unsigned long nRemoteAddr = inet_addr(host_name.c_str());
-	in_addr Address;
-	memcpy(&Address, &nRemoteAddr, sizeof(unsigned long));
-
-	SOCKET sockfd;
-	if (((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-		printf("Could not create socket : %d", WSAGetLastError());
-		return -2;
-	}
-
-	sockaddr_in sinRemote;
-	sinRemote.sin_family = AF_INET;
-	sinRemote.sin_addr.s_addr = nRemoteAddr;
-	sinRemote.sin_port = htons(port);
-	if (connect(sockfd, (sockaddr*)&sinRemote, sizeof(sockaddr_in)) ==
-		SOCKET_ERROR) {
-		sockfd = INVALID_SOCKET;
-		return -3;
-	}
-
-	return sockfd;
-}
+//SOCKET initSocket()
+//{
+//	// get data from cfg
+//	using namespace std;
+//	ifstream filein("bwapi-data/AI/cfg.txt"); // cfg.txt should be stored in same
+//	//  directory as ClientModule.dll under the starcraft parent folder. This is optional
+//
+//	string host_name;
+//	int port;
+//	if (filein.fail()) { // no config file. connect to localhost
+//		host_name = "127.0.0.1";
+//		port = 13337;
+//	}
+//	else { // config file. connect to ip/port
+//		filein >> host_name;
+//		filein >> port;
+//		filein.close();
+//	}
+//
+//	WORD wVersionRequested;
+//	WSADATA wsaData;
+//	
+//	wVersionRequested = MAKEWORD(2, 2); // MAKEWORD(1, 1);
+//	if (WSAStartup(wVersionRequested, &wsaData) != 0)
+//	{
+//		printf("Failed. Error Code : %d", WSAGetLastError());
+//		return -1;
+//	}
+//
+//	unsigned long nRemoteAddr = inet_addr(host_name.c_str());
+//	in_addr Address;
+//	memcpy(&Address, &nRemoteAddr, sizeof(unsigned long));
+//
+//	SOCKET sockfd;
+//	if (((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
+//		printf("Could not create socket : %d", WSAGetLastError());
+//		return -2;
+//	}
+//
+//	sockaddr_in sinRemote;
+//	sinRemote.sin_family = AF_INET;
+//	sinRemote.sin_addr.s_addr = nRemoteAddr;
+//	sinRemote.sin_port = htons(port);
+//	if (connect(sockfd, (sockaddr*)&sinRemote, sizeof(sockaddr_in)) ==
+//		SOCKET_ERROR) {
+//		sockfd = INVALID_SOCKET;
+//		return -3;
+//	}
+//
+//	return sockfd;
+//}
 
 /**
 * Utility function for constructing a Position.
