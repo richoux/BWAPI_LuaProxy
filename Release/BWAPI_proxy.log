@@ -1,4 +1,4 @@
-﻿Build started 29/06/2015 14:58:17.
+﻿Build started 06/07/2015 15:49:39.
      1>Project "D:\GitHub\BWAPI_LuaProxy\BWAPI_proxy.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          D:\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /I"D:\StarCraft\BWAPI-4.1.1b/include" /I"D:\StarCraft\fb\msgpack-c-master/include" /Zi /nologo /W3 /WX- /MP /O2 /Oi /Oy- /GL /D NOMINMAX /D WIN32 /D NDEBUG /D _WINDOWS /D _USRDLL /D EXAMPLEAIMODULE_EXPORTS /D _WINDLL /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source\BWAPI_proxy.cpp
@@ -32,4 +32,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:15.90
+Time Elapsed 00:00:12.32

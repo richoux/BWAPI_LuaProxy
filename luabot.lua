@@ -84,7 +84,7 @@ while true do
    local mpac = client:receive()
 
    print("Eval " .. mpac);
-   loadstring(mpac)();
+   --loadstring(mpac)();
 
    
 
