@@ -81,43 +81,56 @@ local client = server:accept()
 
 while true do
 
-   local mpac = client:receive()
+   local mpac, status, partial = client:receive("*a")
 
-   print("Eval " .. mpac);
-   --loadstring(mpac)();
+   if( mpac ~= nil ) then 
+      print("mpac " .. mpac);
+      for i, command in mp.unpacker(mpac) do
+	 print("i=" .. i .. ", command=" .. command);
+	 loadstring(command)(); 
+      end
+   else
+      print("mpac nil");
+   end
+   if( status ~= nil ) then 
+      print("status " .. status);
+   end
+   if( partial ~= nil ) then 
+      print("partial " .. partial);
+      for i, v in mp.unpacker(partial) do
+	 print("i=" .. i .. ", v=" .. v);	 
+      end
+   end
 
+   print("Self ID: " .. selfID);
+   for p in players do
+      print("Player ID: " .. p);
+      print("Player race: " .. playerRace[p]);
+      print("Player " .. p .. " is an ally: " .. ally[p]);
+   end
+
+   print("Map name: " .. mapName);
+   print("Map Width: " .. mapWidth);
+   print("Map Height: " .. mapHeight);
+
+   local data = {};
+   for i, v in mp.unpacker(mpac) do
+      data[i] = v;
+      --print("i=" .. i .. ", v=" .. v);
+   end
+
+   io.write("Minerals: " );
+   print(data[1]);
    
-
-
-   -- print("Self ID: " .. selfID);
-   -- for p in players do
-   --    print("Player ID: " .. p);
-   --    print("Player race: " .. playerRace[p]);
-   --    print("Player " .. p .. " is an ally: " .. ally[p]);
-   -- end
-
-   -- print("Map name: " .. mapName);
-   -- print("Map Width: " .. mapWidth);
-   -- print("Map Height: " .. mapHeight);
-
-   -- local data = {};
-   -- for i, v in mp.unpacker(mpac) do
-   --    data[i] = v;
-   --    --print("i=" .. i .. ", v=" .. v);
-   -- end
-
-   -- io.write("Minerals: " );
-   -- print(data[1]);
+   io.write("Gas: " );
+   print(data[2]);
    
-   -- io.write("Gas: " );
-   -- print(data[2]);
-   
-   -- io.write("Supply: " );
-   -- if( data[4] ~= nil ) then
-   --    print(data[3] .. "/" .. data[4]);
-   -- else
-   --    print(data[3]);
-   -- end
+   io.write("Supply: " );
+   if( data[4] ~= nil ) then
+      print(data[3] .. "/" .. data[4]);
+   else
+      print(data[3]);
+   end
    
    if status == "closed" then break end
    client:send("0\n")
