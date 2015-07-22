@@ -1,5 +1,9 @@
 local socket = require('socket')
-local server = assert(socket.bind('*', 13337))
+local server = socket.tcp()
+server:bind('*', 13337)
+server:listen(32)
+local client = server:accept()
+
 local mp = require 'MessagePack'
 local ip, port = server:getsockname()
 print(ip)
@@ -76,8 +80,6 @@ local unitIsUnderDarkSwarm  = {}
 local unitIsUnderDisruptionWeb  = {}
 local unitIsUnderStorm  = {}
 local unitIsVisible = {}
-
-local client = server:accept()
 
 while true do
 
