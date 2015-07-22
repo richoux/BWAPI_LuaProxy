@@ -86,9 +86,9 @@ while true do
    local mpac, status, partial = client:receive("*a")
 
    if( mpac ~= nil ) then 
-      print("mpac " .. mpac);
+      --print("mpac " .. mpac);
       for i, command in mp.unpacker(mpac) do
-	 print("i=" .. i .. ", command=" .. command);
+	 --print("i=" .. i .. ", command=" .. command);
 	 loadstring(command)(); 
       end
    else
@@ -97,12 +97,12 @@ while true do
    if( status ~= nil ) then 
       print("status " .. status);
    end
-   if( partial ~= nil ) then 
-      print("partial " .. partial);
-      for i, v in mp.unpacker(partial) do
-	 print("i=" .. i .. ", v=" .. v);	 
-      end
-   end
+   -- if( partial ~= nil ) then 
+   --    print("partial " .. partial);
+   --    for i, v in mp.unpacker(partial) do
+   -- 	 print("i=" .. i .. ", v=" .. v);	 
+   --    end
+   -- end
 
    print("Self ID: " .. selfID);
    for p in players do
