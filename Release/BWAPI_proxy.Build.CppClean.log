@@ -1,5 +1,26 @@
+<<<<<<< HEAD
 c:\users\florianr\research\bwapi_luaproxy\release\dll.obj
 c:\users\florianr\research\bwapi_luaproxy\release\vc120.pdb
 c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.command.1.tlog
 c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.read.1.tlog
 c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.write.1.tlog
+=======
+c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.lib
+c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.exp
+c:\users\florianr\research\bwapi_luaproxy\release\vc120.pdb
+c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.dll
+c:\users\florianr\research\bwapi_luaproxy\release\bwapi_proxy.pdb
+d:\github\bwapi_luaproxy\release\bwapi_proxy.obj
+d:\github\bwapi_luaproxy\release\dll.obj
+d:\github\bwapi_luaproxy\release\bwapi_proxy.exp
+d:\github\bwapi_luaproxy\release\bwapi_proxy.pdb
+d:\github\bwapi_luaproxy\release\vc120.pdb
+d:\github\bwapi_luaproxy\release\bwapi_proxy.dll
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\bwapi_proxy.write.1u.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.command.1.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.read.1.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\cl.write.1.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\link.command.1.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\link.read.1.tlog
+d:\github\bwapi_luaproxy\release\bwapi_proxy.tlog\link.write.1.tlog
+>>>>>>> 4951b4029488c830450bdca433c59c205d07312e
