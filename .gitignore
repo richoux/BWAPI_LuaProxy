@@ -41,3 +41,7 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.tlog
+*.tlog
+Debug/BWAPI_proxy.tlog/BWAPI_proxy.write.1u.tlog
+*.exp
