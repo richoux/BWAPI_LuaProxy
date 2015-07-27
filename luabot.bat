@@ -1,0 +1,1 @@
+/c/Users/florianr/Research/Binaries-LuaDist-batteries-0.9.8-Windows-x86/bin/lua.exe /c/Users/florianr/Research/BWAPI_LuaProxy/luabot.lua
