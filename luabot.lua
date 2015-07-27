@@ -1,22 +1,30 @@
-local socket = require('socket')
-local server = socket.tcp()
-server:bind('*', 13337)
-server:listen(32)
-local client = server:accept()
+local zmq = require 'lzmq'
+local context = zmq.context()
+local msgpack = require 'MessagePack'
+paths.dofile('commands.lua')
 
-local mp = require 'MessagePack'
-local ip, port = server:getsockname()
-print(ip)
-print(port)
+local hostname = '192.168.1.11'
+local port = 5555
 
+print('connecting to: ' .. hostname .. ':' .. port)
+
+local sock, err = context:socket{zmq.REQ,
+				 connect = 'tcp://' .. hostname .. ':' .. port}
+
+sock:send_all({'hiiiiiiiiiiiiiiiii from Torch'})
+print('Connected. Receiving game state. Establishing command control.')
+
+----------------------------------------------------------------------
+-- initializing state with empty tables
+local gs = paths.dofile('gameState.lua')
 --onStart data
-local selfID
+local selfID = 'uninitialized'
 local players = {}
 local playerRace = {}
 local ally = {}
-local mapName
-local mapWidth
-local mapHeight
+local mapName = 'uninitialized'
+local mapWidth = 'uninitialized'
+local mapHeight = 'uninitialized'
 
 --onFrame data
 local myResearch = {}
@@ -80,32 +88,21 @@ local unitIsUnderDarkSwarm  = {}
 local unitIsUnderDisruptionWeb  = {}
 local unitIsUnderStorm  = {}
 local unitIsVisible = {}
+----------------------------------------------------------------------
+
+local counter = 1
 
 while true do
-
-   local mpac, status, partial = client:receive("*a")
-
-   if( mpac ~= nil ) then 
-      --print("mpac " .. mpac);
-      for i, command in mp.unpacker(mpac) do
-	 --print("i=" .. i .. ", command=" .. command);
-	 loadstring(command)(); 
-      end
-   else
-      print("mpac nil");
+   local msg = table.concat(sock:recv_all())
+   for i, command in msgpack.unpacker(msg) do
+      loadstring(command)
+      -- print(command)
    end
-   if( status ~= nil ) then 
-      print("status " .. status);
-   end
-   -- if( partial ~= nil ) then 
-   --    print("partial " .. partial);
-   --    for i, v in mp.unpacker(partial) do
-   -- 	 print("i=" .. i .. ", v=" .. v);	 
-   --    end
-   -- end
+
+   print('Frame ' .. counter)
 
    print("Self ID: " .. selfID);
-   for p in players do
+   for p in ipairs(players) do
       print("Player ID: " .. p);
       print("Player race: " .. playerRace[p]);
       print("Player " .. p .. " is an ally: " .. ally[p]);
@@ -115,117 +112,8 @@ while true do
    print("Map Width: " .. mapWidth);
    print("Map Height: " .. mapHeight);
 
-   local data = {};
-   for i, v in mp.unpacker(mpac) do
-      data[i] = v;
-      --print("i=" .. i .. ", v=" .. v);
-   end
+   print('')
 
-   io.write("Minerals: " );
-   print(data[1]);
-   
-   io.write("Gas: " );
-   print(data[2]);
-   
-   io.write("Supply: " );
-   if( data[4] ~= nil ) then
-      print(data[3] .. "/" .. data[4]);
-   else
-      print(data[3]);
-   end
-   
-   if status == "closed" then break end
-   client:send("0\n")
+   counter = counter + 1
+   sock:send_all({""})
 end
-
-client:close()
-
--- commands
-function attack(unit, x, y)
-   client:send(":1," .. unit .. "," .. x .. "," .. y .. ",0")
-end
-
-function attack(unit, target)
-   client:send(":2," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function rightClick(unit, x, y)
-   client:send(":3,".. unit .. "," .. x .. "," .. y .. ",0")
-end
-
-function rightClick(unit, target)
-   client:send(":4," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function stop(unit)
-   client:send(":10," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function holdPosition(unit)
-   client:send(":11," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function patrol(unit, x, y)
-   client:send(":12,".. unit .. "," .. x .. "," .. y .. ",0")
-end
-
-function follow(unit, target)
-   client:send(":13," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function repair(unit, target)
-   client:send(":16," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function burrow(unit)
-   client:send(":18," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function unburrow(unit)
-   client:send(":19," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function siege(unit)
-   client:send(":20," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function unsiege(unit)
-   client:send(":21," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function cloak(unit)
-   client:send(":22," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function decloak(unit)
-   client:send(":23," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function loadUnit(unit, target)
-   client:send(":26," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function unloadUnit(unit, target)
-   client:send(":27," .. unit .. "," .. target .. ",0" .. ",0")
-end
-
-function unloadAll(unit)
-   client:send(":28," .. unit .. ",0" .. ",0" .. ",0")
-end
-
-function unloadAll(unit, x, y)
-   client:send(":29,".. unit .. "," .. x .. "," .. y .. ",0")
-end
-
-function useTech(unit, techType)
-   client:send(":38," .. unit .. "," .. techType .. ",0" .. ",0")
-end
-
-function useTech(unit, techType, x, y)
-   client:send(":39," .. unit .. "," .. techType .. "," .. x .. "," .. y)
-end
-
-function useTech(unit, techType, target)
-   client:send(":40," .. unit .. "," .. techType .. "," .. target .. ",0")
-end
-
