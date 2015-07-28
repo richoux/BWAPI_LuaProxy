@@ -45,3 +45,13 @@ Temporary Items
 *.tlog
 Debug/BWAPI_proxy.tlog/BWAPI_proxy.write.1u.tlog
 *.exp
+*.log
+*.opensdf
+BWAPI_proxy.sdf
+*.log
+Release/BWAPI_proxy.log
+*.obj
+Release/*.obj
+Debug
+Release/*.log
+Release/*.pdb
