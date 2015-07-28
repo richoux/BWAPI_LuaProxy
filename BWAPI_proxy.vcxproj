@@ -89,7 +89,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>$(BWAPI_DIR)/lib/BWAPI.lib;$(MSGPACK_DIR)/lib/msgpack.lib;C:\Users\fairy\Desktop\GitHub\BWAPI_LuaProxy\Release\czmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BWAPI_DIR)/lib/BWAPI.lib;$(MSGPACK_DIR)/lib/msgpack.lib;Release\czmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

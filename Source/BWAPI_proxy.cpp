@@ -167,8 +167,7 @@ void BWAPI_proxy::onEnd(bool isWinner)
 
   ack += "\n";
 
-
-  // TODO: close socket
+	zsock_destroy(&server_sock);
 }
 
 void BWAPI_proxy::onFrame()
@@ -525,34 +524,37 @@ void BWAPI_proxy::onFrame()
 	//pack_message(string("unitIsUnderStorm [" + idString + "] = " + to_string(i->isUnderStorm())).c_str());
 	//pack_message(string("unitIsVisible [" + idString + "] = " + to_string(i->isVisible())).c_str());
   }
-  // 2. process commands
-  int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
-
-		char *message = new char[numBytes + 1];
-		message[numBytes] = 0;
-		for (int i = 0; i < numBytes; i++)
-		{
-			message[i] = receiveBuffer[i];
-		}
-
-		// tokenize the commands
-		char* token = strtok(message, ":");
-		token = strtok(NULL, ":");			// eat the command part of the message
-		int commandCount = 0;
-		char* commands[100];
-
-		while (token != NULL)
-		{
-			commands[commandCount] = token;
-			commandCount++;
-			token = strtok(NULL, ":");
-		}
+  
 
   send_message();
 
+	// 2. process commands
+	char* message;
+	zsock_recv(server_sock, "s", &message);
 
-  /* TODO: handle commands from client*/
+	// tokenize the commands
+	char* token = strtok(message, ":");
+	token = strtok(NULL, ":");			// eat the command part of the message
+	int commandCount = 0;
+	char* commands[100];
 
+	while (token != NULL)
+	{
+		commands[commandCount] = token;
+		commandCount++;
+		token = strtok(NULL, ":");
+	}
+	// tokenize the arguments
+	for (int i = 0; i < commandCount; i++)
+	{
+		char* command = strtok(commands[i], ",");
+		char* unitID = strtok(NULL, ",");
+		char* arg0 = strtok(NULL, ",");
+		char* arg1 = strtok(NULL, ",");
+		char* arg2 = strtok(NULL, ",");
+		handleCommand(atoi(command), atoi(unitID), atoi(arg0), atoi(arg1), atoi(arg2));
+	}
+	//}
 }
 
 void BWAPI_proxy::onSendText(std::string text)
@@ -1089,13 +1091,17 @@ void send_message()
 
 void initSocket()
 {
-	server_sock = zsock_new_rep("tcp://0.0.0.0:" + port);
+	std::stringstream url;
+	url << "tcp://0.0.0.0:";
+	url << port;
+	server_sock = zsock_new_rep(url.str().c_str());
 	if (server_sock == NULL) {
 		Broodwar->sendText("zsock_new_rep returned NULL");
 	} else {
 		char* welcome_message;
 		int err = zsock_recv(server_sock, "s", &welcome_message);
-		Broodwar->sendText("Welcome message error code: " + err);
+		Broodwar->printf("From Client: %s", welcome_message);
+		Broodwar->printf("Message code: %d", err);
 		server_sock_connected = true;
 	}
 }
