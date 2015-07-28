@@ -109,15 +109,16 @@ while true do
 
    if( x_left_shift > 0 ) then 
       gameState[{{1,x_left_shift},{1,gameState:size(2)},1}] = 3
-
+   end
    if( y_top_shift > 0 ) then 
       gameState[{{1,gameState:size(1)},{1,y_top_shift},1}] = 3
-
+   end
    if( x_right_shift > 0 ) then 
       gameState[{{x_right_shift,gameState:size(1)},{1,gameState:size(2)},1}] = 3
-
+   end
    if( y_bottom_shift > 0 ) then 
       gameState[{{1,gameState:size(1)},{y_bottom_shift,gameState:size(2)},1}] = 3
+   end
       
    print('')
 
