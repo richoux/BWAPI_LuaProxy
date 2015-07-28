@@ -1,22 +1,30 @@
-local socket = require('socket')
-local server = socket.tcp()
-server:bind('*', 13337)
-server:listen(32)
-local client = server:accept()
+local zmq = require 'lzmq'
+local context = zmq.context()
+local msgpack = require 'MessagePack'
+paths.dofile('commands.lua')
 
-local mp = require 'MessagePack'
-local ip, port = server:getsockname()
-print(ip)
-print(port)
+local hostname = '192.168.1.11'
+local port = 5555
+
+print('connecting to: ' .. hostname .. ':' .. port)
+
+local sock, err = context:socket{zmq.REQ,
+				 connect = 'tcp://' .. hostname .. ':' .. port}
+
+sock:send_all({'hiiiiiiiiiiiiiiiii from Torch'})
+print('Connected. Receiving game state. Establishing command control.')
+
+-- initializing state with empty tables
+--local gs = paths.dofile('gameState.lua')
 
 --onStart data
-local selfID
+local selfID = 'uninitialized'
 local players = {}
 local playerRace = {}
 local ally = {}
-local mapName
-local mapWidth
-local mapHeight
+local mapName = 'uninitialized'
+local mapWidth = 'uninitialized'
+local mapHeight = 'uninitialized'
 
 --onFrame data
 local myResearch = {}
@@ -81,7 +89,6 @@ local unitIsUnderDisruptionWeb  = {}
 local unitIsUnderStorm  = {}
 local unitIsVisible = {}
 
-
 -- shifts
 local x_left_shift = 0
 local y_top_shift = 0
@@ -89,21 +96,16 @@ local x_right_shift = 0
 local y_bottom_shift = 0
 
 local gameState = torch.Tensor()
+local counter = 1
 
 while true do
-
-   local mpac, status, partial = client:receive("*a")
-
-   if( mpac ~= nil ) then 
-      for i, command in mp.unpacker(mpac) do
-	 loadstring(command)();
-      end
-   else
-      print("mpac nil");
+   local msg = table.concat(sock:recv_all())
+   for i, command in msgpack.unpacker(msg) do
+      loadstring(command)
+      -- print(command)
    end
-   if( status ~= nil ) then 
-      print("status " .. status);
-   end
+
+   print('Frame ' .. counter)
 
    if( x_left_shift > 0 ) then 
       gameState[{{1,x_left_shift},{1,gameState:size(2)},1}] = 3
@@ -116,13 +118,12 @@ while true do
 
    if( y_bottom_shift > 0 ) then 
       gameState[{{1,gameState:size(1)},{y_bottom_shift,gameState:size(2)},1}] = 3
-   
-   
-   if status == "closed" then break end
-   client:send("0\n")
-end
+      
+   print('')
 
-client:close()
+   counter = counter + 1
+   sock:send_all({""})
+end
 
 -- commands
 function attack(unit, x, y)

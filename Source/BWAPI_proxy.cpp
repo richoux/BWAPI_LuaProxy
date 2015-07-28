@@ -1,14 +1,11 @@
 #include "BWAPI_proxy.h"
+#include <czmq.h>
 #include <iostream>
-#include <winsock2.h>
 #include <stdio.h>
 #include <string>
 #include <fstream>
-//#include <sstream>
 #include <string>
 #include <msgpack.hpp>
-
-#pragma comment(lib,"ws2_32.lib") //Winsock Library
 
 using namespace BWAPI;
 using namespace Filter;
@@ -49,7 +46,9 @@ char sendBuffer[sendBufferSize];
 int digits[9];
 
 /** our socket */
-int proxyBotSocket = -1;
+zsock_t * server_sock = NULL;
+bool server_sock_connected = false; /* this becomes true after client connects*/
+int port = 5555;
 
 /** message pack buffers */
 msgpack::sbuffer sbuf;
@@ -65,33 +64,25 @@ BWAPI::Unit getUnit(int unitID);
 BWAPI::UnitType getUnitType(int type);
 BWAPI::TechType getTechType(int type);
 BWAPI::UpgradeType getUpgradeType(int type);
-void pack_and_send(const char *);
-SOCKET initSocket();
+void pack_message(const char *);
+void send_message();
+void initSocket();
 
 void BWAPI_proxy::onStart()
 {
   // Hello World!
   Broodwar->printf("BWAPI_proxy onStart()!");
+  initSocket();
 
-  if (proxyBotSocket == -1) {
+  if (!server_sock_connected) {
 	  Broodwar->sendText("Connecting to BWAPI_proxy");
-	  proxyBotSocket = initSocket();
 
 	  // connected failed
-	  if (proxyBotSocket == -1) {
-		  Broodwar->sendText("WSAStartup failed");
-		  return;
-	  }
-	  else if (proxyBotSocket == -2) {
+	  if (!server_sock_connected) {		
 		  Broodwar->sendText("Socket creation failed");
 		  return;
-	  }
-	  else if (proxyBotSocket == -3) {
-		  Broodwar->sendText("Socket connection failed");
-		  return;
-	  }
-	  else {
-		  Broodwar->sendText("Sucessfully connected to BWAPI_proxy");
+	  } else {
+		  Broodwar->sendText("Sucessfully listening for proxy clients");
 	  }
   }
   else {
@@ -143,22 +134,22 @@ void BWAPI_proxy::onStart()
   // 1. initiate communication with the proxy bot
 
 	// Players data
- // pack_and_send("selfId = " + Broodwar->self()->getID() );
+ // pack_message("selfId = " + Broodwar->self()->getID() );
 	//Playerset  players = Broodwar->getPlayers();
 	//for (auto &p : players)
 	//{
 	//	int id = p->getID();
-	//	pack_and_send("table.insert(players, " + id);
-	//	pack_and_send(string("playerRace[" + to_string(id) + "] = " + p->getRace().getName()).c_str());
-	//	pack_and_send(string("ally[" + to_string(id) + "] = " + to_string(Broodwar->self()->isAlly(p))).c_str());
+	//	pack_message("table.insert(players, " + id);
+	//	pack_message(string("playerRace[" + to_string(id) + "] = " + p->getRace().getName()).c_str());
+	//	pack_message(string("ally[" + to_string(id) + "] = " + to_string(Broodwar->self()->isAlly(p))).c_str());
 	//}
 
 	//// Map data
 	//string s = "mapName = ";
 	//s += Broodwar->mapName();
-	//pack_and_send(s.c_str());
-	//pack_and_send("mapWidth = " + Broodwar->mapWidth());
-	//pack_and_send("mapHeight = " + Broodwar->mapHeight());
+	//pack_message(s.c_str());
+	//pack_message("mapWidth = " + Broodwar->mapWidth());
+	//pack_message("mapHeight = " + Broodwar->mapHeight());
 }
 
 void BWAPI_proxy::onEnd(bool isWinner)
@@ -177,7 +168,7 @@ void BWAPI_proxy::onEnd(bool isWinner)
   ack += "\n";
 
 
-  closesocket(proxyBotSocket);
+  // TODO: close socket
 }
 
 void BWAPI_proxy::onFrame()
@@ -185,7 +176,7 @@ void BWAPI_proxy::onFrame()
   // Called once every game frame
 
 	// check if the Proxy Bot is connected
-	if (proxyBotSocket == -1) {
+	if (!server_sock_connected) {
 		return;
 	}
 
@@ -320,7 +311,7 @@ void BWAPI_proxy::onFrame()
 			Position unitPosition = u->getPosition();
 			string idString = to_string(unitID);
 
-			pack_and_send(string("unitID[" + idString + "] = " + idString).c_str());
+			pack_message(string("unitID[" + idString + "] = " + idString).c_str());
 
 			int x_left = unitPosition.x;
 			x_left -= x_left % 8;
@@ -337,10 +328,10 @@ void BWAPI_proxy::onFrame()
 			int y_t = std::max(0, y_top - context);
 			int y_b = std::min(y_bottom + context, Broodwar->mapHeight()*32);
 
-			pack_and_send((string("x_left_shift = ") + to_string(- x_l + x_left)).data());
-			pack_and_send((string("y_top_shift = ") + to_string(-y_t + y_top)).data());
-			pack_and_send((string("x_right_shift = ") + to_string(x_r - x_right)).data());
-			pack_and_send((string("y_bottom_shift = ") + to_string(y_b - y_bottom)).data());
+			pack_message((string("x_left_shift = ") + to_string(- x_l + x_left)).data());
+			pack_message((string("y_top_shift = ") + to_string(-y_t + y_top)).data());
+			pack_message((string("x_right_shift = ") + to_string(x_r - x_right)).data());
+			pack_message((string("y_bottom_shift = ") + to_string(y_b - y_bottom)).data());
 
 			// Get all units around me in a 100*100 walktiles rectangle
 			auto unitsAround = Broodwar->getUnitsInRectangle(x_l, y_t, x_r, y_b);
@@ -354,15 +345,15 @@ void BWAPI_proxy::onFrame()
 				int unitCooldown = unit->getGroundWeaponCooldown();
 				
 				string dataToSend = "gameState[" + to_string(unit_x) + "][" + to_string(unit_y) + "][1] = " + to_string(playerID);
-				pack_and_send(dataToSend.data());
+				pack_message(dataToSend.data());
 
 				dataToSend = "gameState[" + to_string(unit_x) + "][" + to_string(unit_y) + "][2] = " + to_string(typeID);
-				pack_and_send(dataToSend.data());
+				pack_message(dataToSend.data());
 
 				dataToSend = "gameState[" + to_string(unit_x) + "][" + to_string(unit_y) + "][3] = " + to_string(unitHP);
-				pack_and_send(dataToSend.data());
+				pack_message(dataToSend.data());
 
-				pack_and_send(dataToSend.data());
+				pack_message(dataToSend.data());
 			  
 			}
 
@@ -374,7 +365,7 @@ void BWAPI_proxy::onFrame()
 					if (!Broodwar->isWalkable(x, y))
 					{
 						string dataToSend = "gameState[" + to_string(x) + "][" + to_string(y) + "][1] = 3";
-						pack_and_send(dataToSend.data());
+						pack_message(dataToSend.data());
 					}
 				}
 			}
@@ -421,20 +412,20 @@ void BWAPI_proxy::onFrame()
 
 	//  if (Broodwar->self()->hasResearched(i)) {
 	//	  //research[(i).getID()] = 4;
-	//		pack_and_send(string("myResearch[" + idString + "] = true").c_str());
+	//		pack_message(string("myResearch[" + idString + "] = true").c_str());
 	//  }
 	//  //else if (Broodwar->self()->isResearching(i)) {
 	//	  //research[(i).getID()] = 1;
 	//  //}
 	//	if (!Broodwar->self()->hasResearched(i)){
-	//		pack_and_send(string("myResearch[" + idString + "] = false").c_str());
+	//		pack_message(string("myResearch[" + idString + "] = false").c_str());
 	//		//research[(i).getID()] = 0;
 	//  }
 	//	if (Broodwar->enemy()->hasResearched(i)) {
-	//		pack_and_send(string("enemyResearch[" + idString + "] = true").c_str());
+	//		pack_message(string("enemyResearch[" + idString + "] = true").c_str());
 	//	}
 	//	if (!Broodwar->enemy()->hasResearched(i)){
-	//		pack_and_send(string("enemyResearch[" + idString + "] = false").c_str());
+	//		pack_message(string("enemyResearch[" + idString + "] = false").c_str());
 	//	}
 	//}
 
@@ -454,19 +445,19 @@ void BWAPI_proxy::onFrame()
 
 	//  if (Broodwar->self()->isUpgrading(i)) {
 	//	  //ups[(i).getID()] = 4;
-	//	  pack_and_send(string("myUpgrades[" + idString + "] = true").c_str());
+	//	  pack_message(string("myUpgrades[" + idString + "] = true").c_str());
 	//  }
 	//  //else {
 	//	 // ups[(i).getID()] = Broodwar->self()->getUpgradeLevel(i);
 	//  //}
 	//	if (!Broodwar->self()->isUpgrading(i)) {
-	//		pack_and_send(string("myUpgrades[" + idString + "] = false").c_str());
+	//		pack_message(string("myUpgrades[" + idString + "] = false").c_str());
 	//	}
 	//	if (Broodwar->enemy()->isUpgrading(i)) {
-	//		pack_and_send(string("enemyUpgrades[" + idString + "] = true").c_str());
+	//		pack_message(string("enemyUpgrades[" + idString + "] = true").c_str());
 	//	}
 	//	if (!Broodwar->enemy()->isUpgrading(i)) {
-	//		pack_and_send(string("enemyUpgrades[" + idString + "] = false").c_str());
+	//		pack_message(string("enemyUpgrades[" + idString + "] = false").c_str());
 	//	}
 
  // }
@@ -476,64 +467,63 @@ void BWAPI_proxy::onFrame()
 	 // index = append(ups[i], sendBuffer, index);
   //}
 
+	//pack_message(string("unitPlayerID[" + idString + "] = " + to_string(i->getPlayer()->getID())).c_str());
+	//pack_message(string("unitType[" + idString + "] = " + to_string(i->getType().getID())).c_str());
+	//pack_message(string("table.insert(unitMapType[" + to_string(i->getType().getID()) + "], " + idString + ")").c_str());
+	//pack_message(string("unitPosX[" + idString + "] = " + to_string(i->getTilePosition().x)).c_str());
+	//pack_message(string("unitPosY[" + idString + "] = " + to_string(i->getTilePosition().y)).c_str());
+	//pack_message(string("unitHP[" + idString + "] = " + to_string(i->getHitPoints())).c_str());
+	//pack_message(string("unitInitHP[" + idString + "] = " + to_string(i->getInitialHitPoints())).c_str());
+	//pack_message(string("unitShield[" + idString + "] = " + to_string(i->getShields())).c_str());
+	//pack_message(string("unitEnergy[" + idString + "] = " + to_string(i->getEnergy())).c_str());
+	//pack_message(string("unitOrderID[" + idString + "] = " + to_string(i->getOrder().getID())).c_str());
+	//pack_message(string("unitSpiderMineCount[" + idString + "] = " + to_string(i->getSpiderMineCount())).c_str());
+	//pack_message(string("unitScarabCount[" + idString + "] = " + to_string(i->getScarabCount())).c_str());
+	//pack_message(string("unitInterceptorCount[" + idString + "] = " + to_string(i->getInterceptorCount())).c_str());
+	//pack_message(string("unitAcidSporeCount[" + idString + "] = " + to_string(i->getAcidSporeCount())).c_str());
+	//pack_message(string("unitVelocityX[" + idString + "] = " + to_string(i->getVelocityX())).c_str());
+	//pack_message(string("unitVelocityY[" + idString + "] = " + to_string(i->getVelocityY())).c_str());
 
-	//pack_and_send(string("unitPlayerID[" + idString + "] = " + to_string(i->getPlayer()->getID())).c_str());
-	//pack_and_send(string("unitType[" + idString + "] = " + to_string(i->getType().getID())).c_str());
-	//pack_and_send(string("table.insert(unitMapType[" + to_string(i->getType().getID()) + "], " + idString + ")").c_str());
-	//pack_and_send(string("unitPosX[" + idString + "] = " + to_string(i->getTilePosition().x)).c_str());
-	//pack_and_send(string("unitPosY[" + idString + "] = " + to_string(i->getTilePosition().y)).c_str());
-	//pack_and_send(string("unitHP[" + idString + "] = " + to_string(i->getHitPoints())).c_str());
-	//pack_and_send(string("unitInitHP[" + idString + "] = " + to_string(i->getInitialHitPoints())).c_str());
-	//pack_and_send(string("unitShield[" + idString + "] = " + to_string(i->getShields())).c_str());
-	//pack_and_send(string("unitEnergy[" + idString + "] = " + to_string(i->getEnergy())).c_str());
-	//pack_and_send(string("unitOrderID[" + idString + "] = " + to_string(i->getOrder().getID())).c_str());
-	//pack_and_send(string("unitSpiderMineCount[" + idString + "] = " + to_string(i->getSpiderMineCount())).c_str());
-	//pack_and_send(string("unitScarabCount[" + idString + "] = " + to_string(i->getScarabCount())).c_str());
-	//pack_and_send(string("unitInterceptorCount[" + idString + "] = " + to_string(i->getInterceptorCount())).c_str());
-	//pack_and_send(string("unitAcidSporeCount[" + idString + "] = " + to_string(i->getAcidSporeCount())).c_str());
-	//pack_and_send(string("unitVelocityX[" + idString + "] = " + to_string(i->getVelocityX())).c_str());
-	//pack_and_send(string("unitVelocityY[" + idString + "] = " + to_string(i->getVelocityY())).c_str());
-
-	//pack_and_send(string("unitIsAccelerating [" + idString + "] = " + to_string(i->isAccelerating())).c_str());
-	//pack_and_send(string("unitIsAttackFrame [" + idString + "] = " + to_string(i->isAttackFrame())).c_str());
-	//pack_and_send(string("unitIsAttacking [" + idString + "] = " + to_string(i->isAttacking())).c_str());
-	//pack_and_send(string("unitIsBeingHealed [" + idString + "] = " + to_string(i->isBeingHealed())).c_str());
-	//pack_and_send(string("unitIsBlind [" + idString + "] = " + to_string(i->isBlind())).c_str());
-	//pack_and_send(string("unitIsBraking [" + idString + "] = " + to_string(i->isBraking())).c_str());
-	//pack_and_send(string("unitIsBurrowed [" + idString + "] = " + to_string(i->isBurrowed())).c_str());
-	//pack_and_send(string("unitIsCloaked [" + idString + "] = " + to_string(i->isCloaked())).c_str());
-	//pack_and_send(string("unitIsDefenseMatrixed [" + idString + "] = " + to_string(i->isDefenseMatrixed())).c_str());
-	//pack_and_send(string("unitIsDetected [" + idString + "] = " + to_string(i->isDetected())).c_str());
-	//pack_and_send(string("unitIsEnsnared [" + idString + "] = " + to_string(i->isEnsnared())).c_str());
-	//pack_and_send(string("unitIsFlying [" + idString + "] = " + to_string(i->isFlying())).c_str());
-	//pack_and_send(string("unitIsFollowing [" + idString + "] = " + to_string(i->isFollowing())).c_str());
-	//pack_and_send(string("unitIsHallucination [" + idString + "] = " + to_string(i->isHallucination())).c_str());
-	//pack_and_send(string("unitIsHoldingPosition [" + idString + "] = " + to_string(i->isHoldingPosition())).c_str());
-	//pack_and_send(string("unitIsIdle [" + idString + "] = " + to_string(i->isIdle())).c_str());
-	//pack_and_send(string("unitIsInterruptible [" + idString + "] = " + to_string(i->isInterruptible())).c_str());
-	//pack_and_send(string("unitIsInvincible [" + idString + "] = " + to_string(i->isInvincible())).c_str());
-	//pack_and_send(string("unitIsIrradiated [" + idString + "] = " + to_string(i->isIrradiated())).c_str());
-	//pack_and_send(string("unitIsLoaded [" + idString + "] = " + to_string(i->isLoaded())).c_str());
-	//pack_and_send(string("unitIsLockedDown [" + idString + "] = " + to_string(i->isLockedDown())).c_str());
-	//pack_and_send(string("unitIsMaelstrommed [" + idString + "] = " + to_string(i->isMaelstrommed())).c_str());
-	//pack_and_send(string("unitIsMorphing [" + idString + "] = " + to_string(i->isMorphing())).c_str());
-	//pack_and_send(string("unitIsMoving [" + idString + "] = " + to_string(i->isMoving())).c_str());
-	//pack_and_send(string("unitIsParasited [" + idString + "] = " + to_string(i->isParasited())).c_str());
-	//pack_and_send(string("unitIsPatrolling [" + idString + "] = " + to_string(i->isPatrolling())).c_str());
-	//pack_and_send(string("unitIsPlagued [" + idString + "] = " + to_string(i->isPlagued())).c_str());
-	//pack_and_send(string("unitIsRepairing [" + idString + "] = " + to_string(i->isRepairing())).c_str());
-	//pack_and_send(string("unitIsSelected [" + idString + "] = " + to_string(i->isSelected())).c_str());
-	//pack_and_send(string("unitIsSieged [" + idString + "] = " + to_string(i->isSieged())).c_str());
-	//pack_and_send(string("unitIsStartingAttack [" + idString + "] = " + to_string(i->isStartingAttack())).c_str());
-	//pack_and_send(string("unitIsStasised [" + idString + "] = " + to_string(i->isStasised())).c_str());
-	//pack_and_send(string("unitIsStimmed [" + idString + "] = " + to_string(i->isStimmed())).c_str());
-	//pack_and_send(string("unitIsStuck [" + idString + "] = " + to_string(i->isStuck())).c_str());
-	//pack_and_send(string("unitIsTargetable [" + idString + "] = " + to_string(i->isTargetable())).c_str());
-	//pack_and_send(string("unitIsUnderAttack [" + idString + "] = " + to_string(i->isUnderAttack())).c_str());
-	//pack_and_send(string("unitIsUnderDarkSwarm [" + idString + "] = " + to_string(i->isUnderDarkSwarm())).c_str());
-	//pack_and_send(string("unitIsUnderDisruptionWeb [" + idString + "] = " + to_string(i->isUnderDisruptionWeb())).c_str());
-	//pack_and_send(string("unitIsUnderStorm [" + idString + "] = " + to_string(i->isUnderStorm())).c_str());
-	//pack_and_send(string("unitIsVisible [" + idString + "] = " + to_string(i->isVisible())).c_str());
+	//pack_message(string("unitIsAccelerating [" + idString + "] = " + to_string(i->isAccelerating())).c_str());
+	//pack_message(string("unitIsAttackFrame [" + idString + "] = " + to_string(i->isAttackFrame())).c_str());
+	//pack_message(string("unitIsAttacking [" + idString + "] = " + to_string(i->isAttacking())).c_str());
+	//pack_message(string("unitIsBeingHealed [" + idString + "] = " + to_string(i->isBeingHealed())).c_str());
+	//pack_message(string("unitIsBlind [" + idString + "] = " + to_string(i->isBlind())).c_str());
+	//pack_message(string("unitIsBraking [" + idString + "] = " + to_string(i->isBraking())).c_str());
+	//pack_message(string("unitIsBurrowed [" + idString + "] = " + to_string(i->isBurrowed())).c_str());
+	//pack_message(string("unitIsCloaked [" + idString + "] = " + to_string(i->isCloaked())).c_str());
+	//pack_message(string("unitIsDefenseMatrixed [" + idString + "] = " + to_string(i->isDefenseMatrixed())).c_str());
+	//pack_message(string("unitIsDetected [" + idString + "] = " + to_string(i->isDetected())).c_str());
+	//pack_message(string("unitIsEnsnared [" + idString + "] = " + to_string(i->isEnsnared())).c_str());
+	//pack_message(string("unitIsFlying [" + idString + "] = " + to_string(i->isFlying())).c_str());
+	//pack_message(string("unitIsFollowing [" + idString + "] = " + to_string(i->isFollowing())).c_str());
+	//pack_message(string("unitIsHallucination [" + idString + "] = " + to_string(i->isHallucination())).c_str());
+	//pack_message(string("unitIsHoldingPosition [" + idString + "] = " + to_string(i->isHoldingPosition())).c_str());
+	//pack_message(string("unitIsIdle [" + idString + "] = " + to_string(i->isIdle())).c_str());
+	//pack_message(string("unitIsInterruptible [" + idString + "] = " + to_string(i->isInterruptible())).c_str());
+	//pack_message(string("unitIsInvincible [" + idString + "] = " + to_string(i->isInvincible())).c_str());
+	//pack_message(string("unitIsIrradiated [" + idString + "] = " + to_string(i->isIrradiated())).c_str());
+	//pack_message(string("unitIsLoaded [" + idString + "] = " + to_string(i->isLoaded())).c_str());
+	//pack_message(string("unitIsLockedDown [" + idString + "] = " + to_string(i->isLockedDown())).c_str());
+	//pack_message(string("unitIsMaelstrommed [" + idString + "] = " + to_string(i->isMaelstrommed())).c_str());
+	//pack_message(string("unitIsMorphing [" + idString + "] = " + to_string(i->isMorphing())).c_str());
+	//pack_message(string("unitIsMoving [" + idString + "] = " + to_string(i->isMoving())).c_str());
+	//pack_message(string("unitIsParasited [" + idString + "] = " + to_string(i->isParasited())).c_str());
+	//pack_message(string("unitIsPatrolling [" + idString + "] = " + to_string(i->isPatrolling())).c_str());
+	//pack_message(string("unitIsPlagued [" + idString + "] = " + to_string(i->isPlagued())).c_str());
+	//pack_message(string("unitIsRepairing [" + idString + "] = " + to_string(i->isRepairing())).c_str());
+	//pack_message(string("unitIsSelected [" + idString + "] = " + to_string(i->isSelected())).c_str());
+	//pack_message(string("unitIsSieged [" + idString + "] = " + to_string(i->isSieged())).c_str());
+	//pack_message(string("unitIsStartingAttack [" + idString + "] = " + to_string(i->isStartingAttack())).c_str());
+	//pack_message(string("unitIsStasised [" + idString + "] = " + to_string(i->isStasised())).c_str());
+	//pack_message(string("unitIsStimmed [" + idString + "] = " + to_string(i->isStimmed())).c_str());
+	//pack_message(string("unitIsStuck [" + idString + "] = " + to_string(i->isStuck())).c_str());
+	//pack_message(string("unitIsTargetable [" + idString + "] = " + to_string(i->isTargetable())).c_str());
+	//pack_message(string("unitIsUnderAttack [" + idString + "] = " + to_string(i->isUnderAttack())).c_str());
+	//pack_message(string("unitIsUnderDarkSwarm [" + idString + "] = " + to_string(i->isUnderDarkSwarm())).c_str());
+	//pack_message(string("unitIsUnderDisruptionWeb [" + idString + "] = " + to_string(i->isUnderDisruptionWeb())).c_str());
+	//pack_message(string("unitIsUnderStorm [" + idString + "] = " + to_string(i->isUnderStorm())).c_str());
+	//pack_message(string("unitIsVisible [" + idString + "] = " + to_string(i->isVisible())).c_str());
   }
   // 2. process commands
   int numBytes = recv(proxyBotSocket, receiveBuffer, recvBufferSize, 0);
@@ -558,18 +548,11 @@ void BWAPI_proxy::onFrame()
 			token = strtok(NULL, ":");
 		}
 
-		// tokenize the arguments
-		for (int i = 0; i < commandCount; i++)
-		{
-			char* command = strtok(commands[i], ",");
-			char* unitID = strtok(NULL, ",");
-			char* arg0 = strtok(NULL, ",");
-			char* arg1 = strtok(NULL, ",");
-			char* arg2 = strtok(NULL, ",");
+  send_message();
 
-			handleCommand(atoi(command), atoi(unitID), atoi(arg0), atoi(arg1), atoi(arg2));
-		}
-	//}
+
+  /* TODO: handle commands from client*/
+
 }
 
 void BWAPI_proxy::onSendText(std::string text)
@@ -679,16 +662,58 @@ void BWAPI_proxy::onUnitComplete(BWAPI::Unit unit)
 }
 
 /**
-* Homemade send function, packing the string and shipping it.
+* Utility function for constructing a Position.
+*
+* Note: positions are in pixel coordinates, while the inputs are given in tile coordinates
 */
-void pack_and_send(const char * str)
+Position getPosition(int x, int y)
 {
-	string s = str;
-	s += "\n";
-	packer.pack(s.c_str());
-	send( proxyBotSocket, sbuf.data(), sbuf.size(), 0 );
-	sbuf.clear();
+	return BWAPI::Position(pixelsPerTile*x, pixelsPerTile*y);
 }
+
+/**
+* Utility function for constructing a TilePosition.
+*
+* Note: not sure if this is correct, is there a way to get a tile position
+*       object from the api rather than create a new one?
+*/
+TilePosition getTilePosition(int x, int y)
+{
+	return BWAPI::TilePosition(x, y);
+}
+
+/**
+* Returns the unit based on the unit ID
+*/
+Unit getUnit(int unitID)
+{
+	return unitIDMap[unitID];
+}
+
+/**
+* Returns the unit type from its identifier
+*/
+UnitType getUnitType(int type)
+{
+	return unitTypeMap[type];
+}
+
+/**
+* Returns the tech type from its identifier
+*/
+TechType getTechType(int type)
+{
+	return techTypeMap[type];
+}
+
+/**
+* Returns the upgrade type from its identifier
+*/
+UpgradeType getUpgradeType(int type)
+{
+	return upgradeTypeMap[type];
+}
+
 
 /**
 * Append a number to the char array.
@@ -1040,110 +1065,37 @@ void handleCommand(int command, int unitID, int arg0, int arg1, int arg2)
 	}
 }
 
-
-SOCKET initSocket()
+/**
+* Homemade send function, packing the string and shipping it.
+*/
+void pack_message(const char * str)
 {
-	// get data from cfg
-	using namespace std;
-	ifstream filein("bwapi-data/AI/cfg.txt"); // cfg.txt should be stored in same
-	//  directory as ClientModule.dll under the starcraft parent folder. This is optional
+	/* if not yet connected, do nothing */
+	if (!server_sock_connected) return;
 
-	string host_name;
-	int port;
-	if (filein.fail()) { // no config file. connect to localhost
-		host_name = "127.0.0.1";
-		//host_name = "192.168.56.101";
-		//host_name = "10.154.2.21";
-		port = 13337;
+	string s = str;
+	s += "\n";
+	packer.pack(s.c_str());	
+}
+
+void send_message()
+{
+	/* if not yet connected, do nothing */
+	if (!server_sock_connected) return;
+
+	zsock_send(server_sock, "b", sbuf.data(), sbuf.size());
+	sbuf.clear();
+}
+
+void initSocket()
+{
+	server_sock = zsock_new_rep("tcp://0.0.0.0:" + port);
+	if (server_sock == NULL) {
+		Broodwar->sendText("zsock_new_rep returned NULL");
+	} else {
+		char* welcome_message;
+		int err = zsock_recv(server_sock, "s", &welcome_message);
+		Broodwar->sendText("Welcome message error code: " + err);
+		server_sock_connected = true;
 	}
-	else { // config file. connect to ip/port
-		filein >> host_name;
-		filein >> port;
-		filein.close();
-	}
-
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	
-	wVersionRequested = MAKEWORD(2, 2); // MAKEWORD(1, 1);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0)
-	{
-		printf("Failed. Error Code : %d", WSAGetLastError());
-		return -1;
-	}
-
-	unsigned long nRemoteAddr = inet_addr(host_name.c_str());
-	in_addr Address;
-	memcpy(&Address, &nRemoteAddr, sizeof(unsigned long));
-
-	SOCKET sockfd;
-	if (((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)) {
-		printf("Could not create socket : %d", WSAGetLastError());
-		return -2;
-	}
-
-	sockaddr_in sinRemote;
-	sinRemote.sin_family = AF_INET;
-	sinRemote.sin_addr.s_addr = nRemoteAddr;
-	sinRemote.sin_port = htons(port);
-	if (connect(sockfd, (sockaddr*)&sinRemote, sizeof(sockaddr_in)) ==
-		SOCKET_ERROR) {
-		sockfd = INVALID_SOCKET;
-		return -3;
-	}
-
-	return sockfd;
-}
-
-/**
-* Utility function for constructing a Position.
-*
-* Note: positions are in pixel coordinates, while the inputs are given in tile coordinates
-*/
-Position getPosition(int x, int y)
-{
-	return BWAPI::Position(pixelsPerTile*x, pixelsPerTile*y);
-}
-
-/**
-* Utility function for constructing a TilePosition.
-*
-* Note: not sure if this is correct, is there a way to get a tile position
-*       object from the api rather than create a new one?
-*/
-TilePosition getTilePosition(int x, int y)
-{
-	return BWAPI::TilePosition(x, y);
-}
-
-/**
-* Returns the unit based on the unit ID
-*/
-Unit getUnit(int unitID)
-{
-	return unitIDMap[unitID];
-}
-
-/**
-* Returns the unit type from its identifier
-*/
-UnitType getUnitType(int type)
-{
-	return unitTypeMap[type];
-}
-
-/**
-* Returns the tech type from its identifier
-*/
-TechType getTechType(int type)
-{
-	return techTypeMap[type];
-}
-
-/**
-* Returns the upgrade type from its identifier
-*/
-UpgradeType getUpgradeType(int type)
-{
-	return upgradeTypeMap[type];
 }
